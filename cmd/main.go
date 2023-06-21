@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	m := manager.NewRedisManagerClient(&common.RedisManagerOptions{
 		Node:     []string{"172.16.200.30", "172.16.200.31", "172.16.200.32"},
 		Pattern:  "sentinel",

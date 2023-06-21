@@ -40,3 +40,36 @@ func (r Redis) Delete(options *common.RedisDeleteOptions) common.RedisClientTran
 func (Redis) BackUp(options *common.RedisBackUpOptions) common.RedisClientTransport {
 	return &sentinel.RedisBackUp{}
 }
+
+func (Redis) ConfigGet(options *common.RedisConfigGetOptions) common.RedisClientTransportMap {
+	return &sentinel.RedisConfigGet{
+		Node:       options.Node,
+		MasterName: options.MasterName,
+		Password:   options.Password,
+	}
+}
+
+func (Redis) ConfigSet(options *common.RedisConfigSetOptions) common.RedisClientTransport {
+	return &sentinel.RedisConfigSet{
+		RedisNode: options.RedisNode,
+		Password:  options.Password,
+		Conf:      options.Conf,
+	}
+}
+
+func (Redis) DataClean(options *common.RedisDataCleanOptions) common.RedisClientTransport {
+	return &sentinel.RedisDataClean{
+		SentinelNode: options.SentinelNode,
+		Password:     options.Password,
+		MasterName:   options.MasterName,
+	}
+}
+
+func (Redis) Health(options *common.RedisHealthOptions) common.RedisClientTransport {
+	return &sentinel.RedisSentinelHealth{
+		RedisNum:     options.RedisNum,
+		SentinelNode: options.SentinelNode,
+		Password:     options.Password,
+		MasterName:   options.MasterName,
+	}
+}

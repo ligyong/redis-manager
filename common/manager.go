@@ -15,15 +15,26 @@ type RedisClient interface {
 	Start(options *RedisStartOptions) RedisClientTransport
 	Restart(options *RedisRestartOptions) RedisClientTransport
 	Delete(options *RedisDeleteOptions) RedisClientTransport
-	BackUp(options *RedisBackUpOptions) RedisClientTransport
+	ConfigGet(options *RedisConfigGetOptions) RedisClientTransportMap
+	ConfigSet(options *RedisConfigSetOptions) RedisClientTransport
+	DataClean(options *RedisDataCleanOptions) RedisClientTransport
+	Health(options *RedisHealthOptions) RedisClientTransport
 }
 
 type RedisClientTransport interface {
 	Do() RedisOperatorResult
 }
 
+type RedisClientTransportMap interface {
+	Do() RedisOperatorResultMap
+}
+
 type RedisOperatorResult interface {
 	Result() error
+}
+
+type RedisOperatorResultMap interface {
+	Result() (map[string]string, error)
 }
 
 type RedisInstallOptions struct {
@@ -52,4 +63,29 @@ type RedisDeleteOptions struct {
 }
 
 type RedisBackUpOptions struct {
+}
+
+type RedisConfigGetOptions struct {
+	Node       []string
+	MasterName string
+	Password   string
+}
+
+type RedisConfigSetOptions struct {
+	RedisNode []string
+	Password  string
+	Conf      map[string]string
+}
+
+type RedisDataCleanOptions struct {
+	SentinelNode []string
+	Password     string
+	MasterName   string
+}
+
+type RedisHealthOptions struct {
+	RedisNum     int
+	SentinelNode []string
+	Password     string
+	MasterName   string
 }

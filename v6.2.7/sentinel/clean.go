@@ -2,44 +2,31 @@ package sentinel
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/ligyong/redis-manager/common"
 )
 
-func Clean(addrs []string, password string) error {
-	client := sentinelClients(redis.FailoverOptions{
-		MasterName:    "",
-		SentinelAddrs: addrs,
-		Password:      password,
+type RedisDataClean struct {
+	SentinelNode []string
+	Password     string
+	MasterName   string
+	err          error
+}
+
+func (r *RedisDataClean) Do() common.RedisOperatorResult {
+	client := redis.NewFailoverClient(&redis.FailoverOptions{
+		MasterName:    r.MasterName,
+		SentinelAddrs: r.SentinelNode,
+		Password:      r.Password,
 	})
-	_, err := client.Ping(client.Context()).Result()
-	if err != nil {
-		fmt.Println("连接失败：", err)
+
+	if _, err := client.FlushAll(context.TODO()).Result(); err != nil {
+		r.err = err
 	}
 
-	_, err = client.FlushAll(context.TODO()).Result()
-	if err != nil {
-		return err
-	}
-	client.Close()
-	/*
-		master := c.getMasterNode()
-		if master == nil {
-			return errors.New("slave node disconnected")
-		}
-		masterInfo, err := master.Info(context.TODO(), "replication").Result()
-		if err != nil {
-			return errors.New("master node is offline")
-		}
+	return r
+}
 
-		masterInfoMap := pool.UnmarshalRedisConfig(masterInfo)
-		slaveNum, err := strconv.Atoi(masterInfoMap["connected_slaves"])
-		if err != nil {
-			return errors.New(fmt.Sprintf("unknown error: %v", err))
-		}
-		if slaveNum+1 != len(c.client) {
-			return errors.New("slave node disconnected")
-		}
-	*/
-	return nil
+func (r *RedisDataClean) Result() error {
+	return r.err
 }

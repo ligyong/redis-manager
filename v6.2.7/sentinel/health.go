@@ -1,57 +1,54 @@
 package sentinel
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/ligyong/redis-manager/common"
+	"strconv"
+	"strings"
 )
 
-func Health(addrs []string, password string) error {
-	client := sentinelClients(redis.FailoverOptions{
-		MasterName:    "",
-		SentinelAddrs: addrs,
-		Password:      password,
-	})
-	_, err := client.Ping(client.Context()).Result()
-	if err != nil {
-		fmt.Println("连接失败：", err)
-	}
-
-	client.Close()
-	/*
-		master := c.getMasterNode()
-		if master == nil {
-			return errors.New("slave node disconnected")
-		}
-		masterInfo, err := master.Info(context.TODO(), "replication").Result()
-		if err != nil {
-			return errors.New("master node is offline")
-		}
-
-		masterInfoMap := pool.UnmarshalRedisConfig(masterInfo)
-		slaveNum, err := strconv.Atoi(masterInfoMap["connected_slaves"])
-		if err != nil {
-			return errors.New(fmt.Sprintf("unknown error: %v", err))
-		}
-		if slaveNum+1 != len(c.client) {
-			return errors.New("slave node disconnected")
-		}
-	*/
-	return nil
+type RedisSentinelHealth struct {
+	RedisNum     int
+	SentinelNode []string
+	Password     string
+	MasterName   string
+	err          error
 }
 
-func sentinelClients(options redis.FailoverOptions) *redis.Client {
-	// 创建哨兵模式客户端
-	return redis.NewFailoverClient(&options)
+func (r *RedisSentinelHealth) Do() common.RedisOperatorResult {
+	client := redis.NewFailoverClient(&redis.FailoverOptions{
+		MasterName:    "mymaster",
+		SentinelAddrs: []string{"172.16.200.30:26379", "172.16.200.31:26379", "172.16.200.32:26379"},
+		Password:      "Sobey@1234",
+	})
 
-	// 测试连接是否正常
-	//pong, err := client.Ping(client.Context()).Result()
-	//if err != nil {
-	//	fmt.Println("连接失败：", err)
-	//} else {
-	//	fmt.Println("连接成功：", pong)
-	//}
-	//
-	//if err := client.Close(); err != nil {
-	//	fmt.Println("关闭连接失败：", err)
-	//}
+	defer client.Close()
+
+	result, err := client.Info(context.TODO(), "replication").Result()
+	if err != nil {
+		r.err = err
+		return r
+	}
+
+	results := strings.Split(result, "\r\n")
+	slaveNum := 0
+	for _, r := range results {
+		if strings.Contains(r, "connected_slaves") {
+			slave := strings.Split(r, ":")
+			slaveNum, _ = strconv.Atoi(slave[1])
+		}
+	}
+
+	if slaveNum+1 != r.RedisNum {
+		r.err = errors.New(fmt.Sprintf("%d slave is offline", r.RedisNum-1-slaveNum))
+	}
+
+	return r
+}
+
+func (r *RedisSentinelHealth) Result() error {
+	return r.err
 }
